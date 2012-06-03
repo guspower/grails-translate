@@ -4,7 +4,6 @@ import static groovyx.net.http.ContentType.JSON
 
 import groovyx.net.http.RESTClient
 import groovyx.net.http.HttpResponseException
-import grails.plugin.translate.google.GoogleTranslationBatch
 import grails.plugin.translate.TranslateService
 import grails.plugin.translate.TranslateConfig
 import grails.plugin.translate.Translation

@@ -12,11 +12,16 @@ class ObjectValidator {
     Closure constraints
     Errors errors
 
-    boolean validate(Object target) {
-        this.target = target
-        errors = new ValidationErrors(target)
+    boolean validate(Object input) {
+        errors = new ValidationErrors(input)
 
-        buildConstraints()
+        if(target?.class != input.class) {
+            target = input
+            buildConstraints()
+        } else {
+            target = input
+        }
+
         runConstraints()
         addErrorsToTargetIfPossible()
 

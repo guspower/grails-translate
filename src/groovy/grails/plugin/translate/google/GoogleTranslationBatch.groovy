@@ -18,6 +18,7 @@ class GoogleTranslationBatch {
 
     private String language
     private List<Translation> translations = []
+    private validator = new ObjectValidator(constraints: Translatable.constraints)
 
     TranslateCollector collector
 
@@ -33,12 +34,12 @@ class GoogleTranslationBatch {
     }
 
     //TODO: this needs more than a boolean: it can reject for invalid OR full batch
-    boolean add(Translatable translation) {
+    boolean add(Translatable translatable) {
         boolean result
-        if(isValid(translation) && !exceedsTextLimit(translation)) {
-            if(!language || (language == toLanguage(translation.to))) {
-                if(!language) { language = toLanguage(translation.to) }
-                translations << translation
+        if(validator.validate(translatable) && !exceedsTextLimit(translatable)) {
+            if(!language || (language == toLanguage(translatable.to))) {
+                if(!language) { language = toLanguage(translatable.to) }
+                translations << translatable
                 result = true
             }
         }
@@ -73,15 +74,6 @@ class GoogleTranslationBatch {
 
     void setHttp(HTTPBuilder http) {
         _http = http
-    }
-
-    private boolean isValid(Translatable translatable) {
-        def validator = new ObjectValidator(constraints: Translatable.constraints)
-        boolean result = validator.validate(translatable)
-        if(translatable.hasProperty('errors')) {
-            translatable.errors.addAllErrors(validator.errors)
-        }
-        result
     }
 
     private Closure applyTranslatedText = { data, index ->
