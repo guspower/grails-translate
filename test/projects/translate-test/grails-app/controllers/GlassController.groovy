@@ -1,0 +1,6 @@
+
+class GlassController {
+
+    def index = {}
+
+}
