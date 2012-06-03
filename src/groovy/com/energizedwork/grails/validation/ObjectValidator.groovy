@@ -3,6 +3,7 @@ package com.energizedwork.grails.validation
 import org.springframework.validation.Errors
 import grails.validation.ValidationErrors
 import org.codehaus.groovy.grails.validation.Constraint
+import grails.util.Holders
 
 class ObjectValidator {
 
@@ -44,7 +45,16 @@ class ObjectValidator {
     }
 
     private Class findConstraintClass(String constraintName) {
-        Class.forName("org.codehaus.groovy.grails.validation.${constraintName.capitalize()}Constraint")
+        Class result
+        
+        String className = "org.codehaus.groovy.grails.validation.${constraintName.capitalize()}Constraint"
+        try {
+            result = Class.forName(className)
+        } catch(ClassNotFoundException notFound) {
+            result = Holders.grailsApplication.classLoader.loadClass(className)
+        }
+
+        result
     }
 
     private runConstraints() {

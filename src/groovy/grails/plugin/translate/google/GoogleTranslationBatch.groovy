@@ -7,7 +7,6 @@ import static GoogleTranslateUtils.*
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.HttpResponseException
 import com.energizedwork.grails.validation.ObjectValidator
-import grails.plugin.translate.Translation
 import grails.plugin.translate.TranslateCollector
 import grails.plugin.translate.Translatable
 import grails.plugin.translate.TranslateConfig
@@ -17,13 +16,13 @@ class GoogleTranslationBatch {
     private HTTPBuilder _http
 
     private String language
-    private List<Translation> translations = []
+    private List<Translatable> translations = []
     private validator = new ObjectValidator(constraints: Translatable.constraints)
 
     TranslateCollector collector
 
-    List<Translation> getTranslations() { translations.asImmutable() }
-    void setTranslations(List<Translation> translations) {}
+    List<Translatable> getTranslations() { translations.asImmutable() }
+    void setTranslations(List<Translatable> translations) {}
 
     String getLanguage() { language }
     void setLanguage(String language) {}
@@ -77,13 +76,13 @@ class GoogleTranslationBatch {
     }
 
     private Closure applyTranslatedText = { data, index ->
-        Translation translation = translations[index]
+        Translatable translation = translations[index]
         translation.result = data.translatedText
         collector?.call translation
     }
 
-    private boolean exceedsTextLimit(Translation translation) {
-        totalTextSize + translation.original.size() > Translation.MAX_TEXT_SIZE
+    private boolean exceedsTextLimit(Translatable translation) {
+        totalTextSize + translation.original.size() > Translatable.MAX_TEXT_SIZE
     }
 
     private int getTotalTextSize() {

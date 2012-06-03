@@ -62,3 +62,5 @@ log4j = {
 
     info   'grails.plugin.translate'
 }
+
+translate.google.api.baseUrl='https://www.googleapis.com'

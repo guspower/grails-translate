@@ -4,8 +4,8 @@ interface TranslateService {
 
     List<Locale> getSupportedLocales()
 
-    void translate(Translation translation) throws UnsupportedLocaleException
+    void translate(Translatable translation) throws UnsupportedLocaleException
 
-    void translate(Iterable<Translation> translations, TranslateCollector collector)
+    void translate(Iterable<Translatable> translations, TranslateCollector collector)
 
 }

@@ -6,8 +6,8 @@ import groovyx.net.http.RESTClient
 import groovyx.net.http.HttpResponseException
 import grails.plugin.translate.TranslateService
 import grails.plugin.translate.TranslateConfig
-import grails.plugin.translate.Translation
 import grails.plugin.translate.TranslateCollector
+import grails.plugin.translate.Translatable
 
 class GoogleTranslateService implements TranslateService {
 
@@ -36,13 +36,13 @@ class GoogleTranslateService implements TranslateService {
         }
     }
     
-    void translate(Translation translation) {
+    void translate(Translatable translation) {
         translate([translation], null)
     }
 
-    void translate(Iterable<Translation> translations, TranslateCollector collector) {
+    void translate(Iterable<Translatable> translations, TranslateCollector collector) {
         def batch = new GoogleTranslationBatch(collector: collector)
-        translations.each { Translation translation ->
+        translations.each { Translatable translation ->
             if(!batch.add(translation)) {
                 runBatch batch
                 batch.clear()
