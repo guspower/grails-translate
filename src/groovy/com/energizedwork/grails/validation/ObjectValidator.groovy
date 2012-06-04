@@ -1,9 +1,9 @@
 package com.energizedwork.grails.validation
 
-import org.springframework.validation.Errors
+import grails.util.Holders
 import grails.validation.ValidationErrors
 import org.codehaus.groovy.grails.validation.Constraint
-import grails.util.Holders
+import org.springframework.validation.Errors
 
 class ObjectValidator {
 
