@@ -35,7 +35,7 @@ class GoogleTranslationBatch {
     //TODO: this needs more than a boolean: it can reject for invalid OR full batch
     boolean add(Translatable translatable) {
         boolean result
-        if(validator.validate(translatable) && !exceedsTextLimit(translatable)) {
+        if(validator.validate(translatable) && !exceedsBatchTextLimit(translatable)) {
             if(!language || (language == toLanguage(translatable.to))) {
                 if(!language) { language = toLanguage(translatable.to) }
                 translations << translatable
@@ -81,7 +81,7 @@ class GoogleTranslationBatch {
         collector?.call translation
     }
 
-    private boolean exceedsTextLimit(Translatable translation) {
+    private boolean exceedsBatchTextLimit(Translatable translation) {
         totalTextSize + translation.original.size() > Translatable.MAX_TEXT_SIZE
     }
 

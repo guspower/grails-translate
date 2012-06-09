@@ -2,25 +2,64 @@ package grails.plugin.translate.message
 
 import grails.plugin.translate.TranslateService
 import grails.plugin.translate.Message
+import org.apache.log4j.Logger
 
 class MessageTranslator {
 
-    TranslateService service
+    final log = Logger.getLogger(MessageTranslator)
+
+    TranslateService googleTranslateService
 
     void run(Message message, Locale to) {
         def translatable = new TranslatableMessage(message: message, to: to)
-        service.translate translatable
-        def translation = new Message(code: translatable.message.code, text: translatable.translation, locale: to)
-        translation.save()
+        googleTranslateService.translate translatable
+        createOrUpdate translatable
     }
 
     void run(Locale to) {
-        def messages = Message.findAllByLanguage('')
-        def translatables = messages.collect { new TranslatableMessage(to: to, message: it) }
-        service.translate translatables, null
+        def translatables = asTranslatables(Message.findAllByLanguage(''), to)
+        def duplicates = extractDuplicates(translatables)
+
+        googleTranslateService.translate translatables, null
+        
+        translateDuplicates duplicates, translatables
         translatables.each { TranslatableMessage translated ->
-            def message = new Message(code: translated.message.code, text: translated.translation, locale: to)
-            message.save()
+            createOrUpdate translated
+        }
+    }
+
+    private void createOrUpdate(TranslatableMessage translated) {
+        def message = translated.target
+        if(message) {
+            message.text = translated.translation
+        } else {
+            message = new Message(code: translated.message.code, text: translated.translation, locale: translated.to)
+        }
+        if(!message.save()) {
+            log.error "Unable to save $message: \n ${message.errors}"
+        }
+    }
+
+    private List<TranslatableMessage> asTranslatables(List<Message> messages, Locale to) {
+        messages.collect { new TranslatableMessage(to: to, message: it) }.findAll { TranslatableMessage tm ->
+            tm.shouldTranslate
+        }
+    }
+    
+    private Map<String, List<TranslatableMessage>> extractDuplicates(List<TranslatableMessage> messages) {
+        def data = messages.groupBy { it.message.text }.findAll { it.value.size() > 1 }
+        data.each { key, duplicates ->
+            duplicates[1..-1].each { messages.remove(it) }
+            duplicates.remove 0
+        }
+        data
+    }
+    
+    private void translateDuplicates(Map<String, List<TranslatableMessage>> duplicates, List<TranslatableMessage> messages) {
+        duplicates.each { String text, List<TranslatableMessage> dups ->
+            String translation = messages.find { it.original == text }.translation
+            dups*.translation = translation
+            messages.addAll dups
         }
     }
 

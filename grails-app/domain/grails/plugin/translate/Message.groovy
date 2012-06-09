@@ -4,6 +4,9 @@ import java.text.MessageFormat
 
 class Message {
 
+    Date dateCreated
+    Date lastUpdated
+    
     String code
     String language
     String country
