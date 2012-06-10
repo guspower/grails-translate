@@ -108,10 +108,11 @@ class GoogleTranslateServiceSpec extends AbstractGoogleTranslateSpec {
         and:
         def log = Mock(Logger)
         1 * log.error('translate: 403: Daily Limit Exceeded', _)
-        service.log = log
+
 
         expect:
         play {
+            service.log = log
             service.translate translation
         } || true
     }

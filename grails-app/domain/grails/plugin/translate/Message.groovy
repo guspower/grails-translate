@@ -14,10 +14,11 @@ class Message {
     String text
 
     static constraints = {
-        code unique: ['language', 'country', 'variant'], maxSize: 5000
+        code unique: ['language', 'country', 'variant']
         language nullable: false, blank: true
         country nullable: false, blank: true
         variant nullable: false, blank: true
+        text maxSize: 5000
     }
     
     static mapping = {
