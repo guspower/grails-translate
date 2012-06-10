@@ -4,6 +4,7 @@ import spock.lang.Specification
 import grails.test.mixin.TestFor
 import grails.plugin.translate.Message
 import grails.plugin.translate.TranslateService
+import org.apache.log4j.Logger
 
 @TestFor(Message)
 class MessageTranslatorSpec extends Specification {
@@ -23,7 +24,7 @@ class MessageTranslatorSpec extends Specification {
             it[1].translation = 'Arbeit'
             true
         }, null)
-        def messageTranslator = new MessageTranslator(googleTranslateService: service)
+        def messageTranslator = new MessageTranslator(translateService: service)
         
         when:
         messageTranslator.run(Locale.GERMAN)
@@ -40,7 +41,7 @@ class MessageTranslatorSpec extends Specification {
 
         and:
         def service = Mock(TranslateService)
-        def messageTranslator = new MessageTranslator(googleTranslateService: service)
+        def messageTranslator = new MessageTranslator(translateService: service)
 
         when:
         messageTranslator.run(Locale.GERMAN)
@@ -61,7 +62,7 @@ class MessageTranslatorSpec extends Specification {
             it[0].translation = 'Haus'
             true
         }, null)
-        def messageTranslator = new MessageTranslator(googleTranslateService: service)
+        def messageTranslator = new MessageTranslator(translateService: service)
 
         when:
         messageTranslator.run(Locale.GERMAN)
@@ -79,7 +80,7 @@ class MessageTranslatorSpec extends Specification {
 
         and:
         def service = Mock(TranslateService)
-        def messageTranslator = new MessageTranslator(googleTranslateService: service)
+        def messageTranslator = new MessageTranslator(translateService: service)
 
         when:
         messageTranslator.run(Locale.GERMAN)
@@ -101,7 +102,7 @@ class MessageTranslatorSpec extends Specification {
             it[0].translation = 'Haus'
             it.size() == 1
         }, null)
-        def messageTranslator = new MessageTranslator(googleTranslateService: service)
+        def messageTranslator = new MessageTranslator(translateService: service)
 
         when:
         messageTranslator.run(Locale.GERMAN)
@@ -110,6 +111,28 @@ class MessageTranslatorSpec extends Specification {
         Message.count() == 4
         Message.findAllByLanguage('de').size() == 2
         Message.findAllByLanguage('de').text == ['Haus', 'Haus']
+    }
+
+    def 'will not create new message for empty translation'() {
+        given:
+        new Message([code:'msg.1', text:'House'] + noLocale).save()
+
+        and:
+        def service = Mock(TranslateService)
+        1 * service.translate(_, null)
+        def messageTranslator = new MessageTranslator(translateService: service)
+        
+        def log = Mock(Logger)
+        messageTranslator.log = log
+        0 * log.error(_)
+        1 * log.warn(_)
+
+        when:
+        messageTranslator.run(Locale.GERMAN)
+
+        then:
+        Message.count() == 1
+        Message.findAllByLanguage('de').size() == 0
     }
     
     private getNow() { new Date() }

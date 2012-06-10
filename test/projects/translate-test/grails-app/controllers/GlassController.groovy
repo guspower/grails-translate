@@ -8,7 +8,7 @@ class GlassController {
     def index = {}
 
     def translate = {
-        def translator = new MessageTranslator(googleTranslateService: googleTranslateService)
+        def translator = new MessageTranslator(translateService: googleTranslateService)
         translator.run(Message.findByCodeAndLanguage('i.can.eat.glass', ''), new Locale(params.id))
         
         render view: 'index'

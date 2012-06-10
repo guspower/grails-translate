@@ -8,10 +8,11 @@ import grails.plugin.translate.TranslateService
 import grails.plugin.translate.TranslateConfig
 import grails.plugin.translate.TranslateCollector
 import grails.plugin.translate.Translatable
+import org.apache.log4j.Logger
 
 class GoogleTranslateService implements TranslateService {
 
-    def log
+    def log = Logger.getLogger(GoogleTranslateService)
     RESTClient _restClient
     
     RESTClient getRestClient() {

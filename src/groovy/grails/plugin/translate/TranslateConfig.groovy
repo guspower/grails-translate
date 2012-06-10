@@ -13,4 +13,8 @@ class TranslateConfig {
     static String getGoogleApiBaseUrl() { Holders.config.translate.google.api.baseUrl ?: '' }
     static void setGoogleApiBaseUrl(String baseUrl) { Holders.config.translate.google.api.baseUrl = baseUrl }
 
+    static boolean isOk() {
+        googleApiKey && googleApiVersion && googleApiBaseUrl
+    }
+
 }

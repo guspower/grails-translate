@@ -10,14 +10,23 @@ import com.energizedwork.grails.validation.ObjectValidator
 import grails.plugin.translate.TranslateCollector
 import grails.plugin.translate.Translatable
 import grails.plugin.translate.TranslateConfig
+import org.apache.log4j.Logger
 
 class GoogleTranslationBatch {
 
+    static final int DEFAULT_MAX_BATCH_SIZE = 1500
+    static final int DEFAULT_RATE_LIMIT_DURATION = 1000
+
+    private log = Logger.getLogger(GoogleTranslationBatch)
     private HTTPBuilder _http
+    private long lastRunAt
 
     private String language
     private List<Translatable> translations = []
     private validator = new ObjectValidator(constraints: Translatable.constraints)
+
+    int maxBatchSize = DEFAULT_MAX_BATCH_SIZE
+    int rateLimitDuration = DEFAULT_RATE_LIMIT_DURATION
 
     TranslateCollector collector
 
@@ -46,24 +55,31 @@ class GoogleTranslationBatch {
     }
 
     void run() throws HttpResponseException {
-        if(translations) {
-            http.request(POST, JSON) {
-                headers = ['X-HTTP-Method-Override': 'GET']
-                requestContentType = JSON
+        if(TranslateConfig.ok) {
+            log.info "TRANSLATING BATCH OF SIZE: $totalTextSize"
+            if(translations) {
+                applyRateLimitIfRequired()
 
-                uri.path = "/language/translate/${TranslateConfig.googleApiVersion}"
-                uri.query = [key:TranslateConfig.googleApiKey, target:language]
-                translations.each {
-                    uri.addQueryParam('q', it.original)
-                }
+                http.request(POST, JSON) {
+                    headers.'X-HTTP-Method-Override' = 'GET'
+                    requestContentType = JSON
 
-                response.success = { response, json ->
-                    json.data.translations.eachWithIndex applyTranslatedText
+                    uri.path = "/language/translate/${TranslateConfig.googleApiVersion}"
+                    uri.query = [key:TranslateConfig.googleApiKey, target:language]
+                    translations.each {
+                        uri.addQueryParam('q', it.original)
+                    }
+
+                    response.success = { response, json ->
+                        json.data.translations.eachWithIndex applyTranslatedText
+                    }
                 }
             }
+        } else {
+            logConfigurationError()
         }
     }
-    
+
     HTTPBuilder getHttp() {
         if(!_http) {
             _http = new HTTPBuilder(TranslateConfig.googleApiBaseUrl)
@@ -75,6 +91,16 @@ class GoogleTranslationBatch {
         _http = http
     }
 
+    private applyRateLimitIfRequired() {
+        if(lastRunAt) {
+            long delta = System.currentTimeMillis() - lastRunAt
+            if(delta < rateLimitDuration) {
+                Thread.sleep (rateLimitDuration - delta)
+            }
+        }
+        lastRunAt = System.currentTimeMillis()
+    }
+    
     private Closure applyTranslatedText = { data, index ->
         Translatable translation = translations[index]
         translation.result = data.translatedText
@@ -82,11 +108,18 @@ class GoogleTranslationBatch {
     }
 
     private boolean exceedsBatchTextLimit(Translatable translation) {
-        totalTextSize + translation.original.size() > Translatable.MAX_TEXT_SIZE
+        totalTextSize + translation.original.size() > maxBatchSize
     }
 
     private int getTotalTextSize() {
         translations ? translations.original*.size().sum() : 0
+    }
+
+    private logConfigurationError() {
+        log.error("Invalid/unset google translate configuration!")
+        log.error("translate.google.api.key : ${TranslateConfig.googleApiKey}")
+        log.error("translate.google.api.version : ${TranslateConfig.googleApiVersion}")
+        log.error("translate.google.api.baseUrl : ${TranslateConfig.googleApiBaseUrl}")
     }
 
 }

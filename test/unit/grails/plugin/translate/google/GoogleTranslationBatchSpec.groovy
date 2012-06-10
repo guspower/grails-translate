@@ -14,6 +14,7 @@ import groovyx.net.http.HttpResponseDecorator
 
 import grails.plugin.translate.Translation
 import grails.plugin.translate.TranslateCollector
+import grails.plugin.translate.TranslateConfig
 
 @Mixin(ControllerUnitTestMixin)
 class GoogleTranslationBatchSpec extends AbstractGoogleTranslateSpec {
@@ -35,6 +36,23 @@ class GoogleTranslationBatchSpec extends AbstractGoogleTranslateSpec {
         batch.collector = { translation -> run = true } as TranslateCollector
         
         when:
+        batch.run()
+
+        then:
+        !run
+    }
+
+    def 'does nothing for invalid config'() {
+        given:
+        boolean run
+        def batch = new GoogleTranslationBatch()
+        batch.collector = { translation -> run = true } as TranslateCollector
+
+        and:
+        TranslateConfig.googleApiBaseUrl = ''
+
+        when:
+        batch.add (new Translation(to: Locale.GERMAN, original: 'Shoot the glass'))
         batch.run()
 
         then:
@@ -142,9 +160,10 @@ class GoogleTranslationBatchSpec extends AbstractGoogleTranslateSpec {
 
     def 'will not add entries that increase batch size to above maximum payload size'() {
         given:
-        def t1 = new Translation(to: Locale.GERMAN, original: 'X'.padRight(Translation.MAX_TEXT_SIZE -2))
+        int maxSize = 50
+        def t1 = new Translation(to: Locale.GERMAN, original: 'X'.padRight(maxSize -2))
         def t2 = new Translation(to: Locale.GERMAN, original: 'Second message')
-        def batch = new GoogleTranslationBatch()
+        def batch = new GoogleTranslationBatch(maxBatchSize: maxSize)
 
         expect:
         batch.add t1
@@ -169,6 +188,30 @@ class GoogleTranslationBatchSpec extends AbstractGoogleTranslateSpec {
         thrown UnsupportedOperationException
         batch.language == 'de'
         batch.translations == [t1]
+    }
+
+    def 'batch is rate limited'() {
+        given:
+        int rateLimitDuration = 100
+        def translation = new Translation(to: Locale.GERMAN, original: 'Shoot the glass')
+        def batch = new GoogleTranslationBatch(rateLimitDuration: rateLimitDuration)
+
+        and:
+        def http = Mock(HTTPBuilder)
+        batch.http = http
+        batch.add translation
+        
+        when:
+        long start = System.currentTimeMillis()
+        batch.run()
+        batch.clear()
+        
+        and:
+        batch.add translation
+        batch.run()
+        
+        then:
+        System.currentTimeMillis() - start > rateLimitDuration
     }
 
     @Ignore
@@ -200,6 +243,7 @@ class GoogleTranslationBatchSpec extends AbstractGoogleTranslateSpec {
         config.translations = batch.translations
         config.language = batch.language
 
+        config.headers = new Expando()
         config.uri = new Expando()
         config.uri.metaClass.addQueryParam = { name, value ->
             if(!delegate.query."$name") { delegate.query."$name" = [] }

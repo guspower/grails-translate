@@ -6,13 +6,13 @@ import org.apache.log4j.Logger
 
 class MessageTranslator {
 
-    final log = Logger.getLogger(MessageTranslator)
+    def log = Logger.getLogger(MessageTranslator)
 
-    TranslateService googleTranslateService
+    TranslateService translateService
 
     void run(Message message, Locale to) {
         def translatable = new TranslatableMessage(message: message, to: to)
-        googleTranslateService.translate translatable
+        translateService.translate translatable
         createOrUpdate translatable
     }
 
@@ -20,7 +20,7 @@ class MessageTranslator {
         def translatables = asTranslatables(Message.findAllByLanguage(''), to)
         def duplicates = extractDuplicates(translatables)
 
-        googleTranslateService.translate translatables, null
+        translateService.translate translatables, null
         
         translateDuplicates duplicates, translatables
         translatables.each { TranslatableMessage translated ->
@@ -29,14 +29,18 @@ class MessageTranslator {
     }
 
     private void createOrUpdate(TranslatableMessage translated) {
-        def message = translated.target
-        if(message) {
-            message.text = translated.translation
+        if(translated.translation) {
+            def message = translated.target
+            if(message) {
+                message.text = translated.translation
+            } else {
+                message = new Message(code: translated.message.code, text: translated.translation, locale: translated.to)
+            }
+            if(!message.save()) {
+                log.error "Unable to save $message: \n ${message.errors}"
+            }
         } else {
-            message = new Message(code: translated.message.code, text: translated.translation, locale: translated.to)
-        }
-        if(!message.save()) {
-            log.error "Unable to save $message: \n ${message.errors}"
+            log.warn "No translation created for $translated.message"
         }
     }
 
